@@ -5,15 +5,15 @@
     <div class="row justify-content-center">
         <div class="col-md-8 text-center">
             <h1 class="display-4 mb-4">Welcome to Mock Portal</h1>
-            <p class="lead">This portal demonstrates SSO integration with the Student Portal system.</p>
+            <p class="lead">This portal provides SSO access to the Student Portal system.</p>
             
             <div class="mt-5">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Student Portal SSO</h5>
-                        <p class="card-text">Click below to log in using your Student Portal credentials.</p>
+                        <h5 class="card-title">Student Portal Access</h5>
+                        <p class="card-text">Click below to access the Student Portal system. You will be redirected to sign in.</p>
                         <a href="{{ route('sso.login.form') }}" class="btn btn-primary">
-                            Login with Student Portal
+                            Go to Student Portal
                         </a>
                     </div>
                 </div>

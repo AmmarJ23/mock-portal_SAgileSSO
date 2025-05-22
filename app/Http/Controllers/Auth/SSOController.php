@@ -9,9 +9,9 @@ use Illuminate\Support\Str;
 class SSOController extends Controller
 {
     /**
-     * Show the SSO login form.
+     * Initiate SSO login to external system.
      *
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function showLoginForm()
     {
@@ -19,17 +19,14 @@ class SSOController extends Controller
         $state = Str::random(40);
         session(['sso_state' => $state]);
 
-        // Get the return URL for after successful authentication
-        $returnUrl = route('sso.callback');
-
         // Redirect to the external system's SSO endpoint
         $externalSystemUrl = config('services.student_portal.url');
         $ssoUrl = "{$externalSystemUrl}/auth/sso/initiate";
         
         $queryParams = http_build_query([
             'state' => $state,
-            'return_url' => $returnUrl,
             'client_id' => config('services.student_portal.key')
+            // No return_url since we want to stay on the external system
         ]);
 
         return redirect("{$ssoUrl}?{$queryParams}");
