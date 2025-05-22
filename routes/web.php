@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SSOController;
 
 /*
@@ -19,13 +20,12 @@ Route::get('/', function () {
 });
 
 // Authentication Routes
-Auth::routes();
-
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
 
 // SSO Routes
-Route::get('login/sso', [SSOController::class, 'showLoginForm'])->name('sso.login.form');
-Route::get('login/sso/callback', [SSOController::class, 'handleCallback'])->name('sso.callback');
+Route::get('/login/sso', [SSOController::class, 'showLoginForm'])->name('sso.login.form');
+Route::get('/login/sso/callback', [SSOController::class, 'handleCallback'])->name('sso.callback');
 Route::get('/dashboard', [SSOController::class, 'dashboard'])->name('dashboard');
 
 Auth::routes();

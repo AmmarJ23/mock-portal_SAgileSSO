@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Auth;
 
 class RegisterController extends Controller
 {
@@ -21,52 +23,51 @@ class RegisterController extends Controller
     |
     */
 
-    use RegistersUsers;
-
     /**
-     * Where to redirect users after registration.
+     * Show the registration form.
      *
-     * @var string
+     * @return \Illuminate\View\View
      */
-    protected $redirectTo = '/home';
-
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
+    public function showRegistrationForm()
     {
-        $this->middleware('guest');
+        return view('auth.register');
     }
 
     /**
-     * Get a validator for an incoming registration request.
+     * Handle a registration request.
      *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    protected function validator(array $data)
+    public function register(Request $request)
     {
-        return Validator::make($data, [
+        $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'username' => ['required', 'string', 'max:255', 'unique:users'],
+            'matric_number' => ['required', 'string', 'max:20', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
-    }
 
-    /**
-     * Create a new user instance after a valid registration.
-     *
-     * @param  array  $data
-     * @return \App\Models\User
-     */
-    protected function create(array $data)
-    {
-        return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'username' => $request->username,
+            'matric_number' => $request->matric_number,
+            'password' => Hash::make($request->password),
         ]);
+
+        event(new Registered($user));
+
+        Auth::login($user);
+
+        return redirect()->route('home')
+            ->with('success', 'Registration successful! Welcome to the portal.');
     }
 }
