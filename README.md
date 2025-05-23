@@ -76,18 +76,7 @@ The mock portal implements two SSO approaches:
 1. **User-Initiated SSO**: 
    - Triggered when authenticated users click "Access SAgilePMT"
    - System generates a secure token and redirects to SAgilePMT
-   - SAgilePMT verifies token, creates/logs in user, and redirects back
-
-2. **API-Based Token Verification**:
-   - SAgilePMT can verify tokens via `/api/verify-sso-token` endpoint
-   - Request structure:
-     ```json
-     {
-       "token": "your-sso-token",
-       "client_id": "mock-portal-client",
-       "api_key": "your-secret-key"
-     }
-     ```
+   - SAgilePMT verifies token, creates/logs in user, and redirects to SAgilePMT Dashboard
 
 ## Implementing SSO in Other Systems
 
