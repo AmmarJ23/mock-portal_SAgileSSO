@@ -61,7 +61,7 @@ class SSOController extends Controller
     }
 
     /**
-     * Handle the callback from SAgilePMT_UTM system.
+     * Handle the callback from SAgilePMT_UTM system. Can be removed - not yet implemented
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
