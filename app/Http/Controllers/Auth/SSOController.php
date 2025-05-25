@@ -53,7 +53,7 @@ class SSOController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'username' => $user->username,
-                'matric_number' => $user->matric_number
+                'identifier' => $user->matric_number
             ]))
         ]);
 
