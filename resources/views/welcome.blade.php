@@ -99,6 +99,9 @@
                                 <a href="{{ url('/home') }}" class="nav-link">Home</a>
                             </li>
                             <li class="nav-item">
+                                <a href="{{ route('lecturer.student.assignments') }}" class="nav-link">Lecturer-Student Assignments</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="{{ route('sso.login.form') }}" class="nav-link">Access SAgilePMT</a>
                             </li>
                             <li class="nav-item dropdown">

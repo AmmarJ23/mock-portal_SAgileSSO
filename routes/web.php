@@ -31,3 +31,11 @@ Route::get('/dashboard', [SSOController::class, 'dashboard'])->name('dashboard')
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+Route::get('/lecturer-student-assignments', [App\Http\Controllers\LecturerStudentAssignmentController::class, 'index'])
+    ->name('lecturer.student.assignments')
+    ->middleware('auth');
+
+Route::post('/lecturer-student-assignments', [App\Http\Controllers\LecturerStudentAssignmentController::class, 'store'])
+    ->name('lecturer.student.assignments.store')
+    ->middleware('auth');
