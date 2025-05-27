@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
+use App\Models\LecturerStudentAssignment;
+use App\Models\User;
 
 class SSOController extends Controller
 {
@@ -132,5 +134,88 @@ class SSOController extends Controller
         }
 
         return view('dashboard', ['userData' => $userData]);
+    }
+
+    /**
+     * Sync lecturer-student assignments with SAgilePMT.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function syncWithSAgile(Request $request)
+    {
+        try {
+            // Generate timestamp and token similar to showLoginForm
+            $timestamp = time();
+            $secretKey = Config::get('services.sagilepmt.key', 'default-secret-key');
+            $token = hash('sha256', $timestamp . $secretKey . 'mock-portal-client');
+
+            // Get all lecturer-student assignments grouped by lecturer
+            $assignments = LecturerStudentAssignment::all()
+                ->groupBy('lecturer_staff_id');
+
+            // Format assignments data
+            $formattedAssignments = [];
+
+            foreach ($assignments as $lecturerStaffId => $lecturerAssignments) {
+                // Get lecturer data
+                $lecturer = User::where('staff_id', $lecturerStaffId)->first();
+                
+                if (!$lecturer) {
+                    continue; // Skip if lecturer not found
+                }
+
+                $assignmentGroup = [
+                    'lecturer' => [
+                        'staff_id' => $lecturer->staff_id,
+                        'name' => $lecturer->name,
+                        'username' => $lecturer->username,
+                        'email' => $lecturer->email,
+                    ],
+                    'students' => []
+                ];
+
+                // Add students
+                foreach ($lecturerAssignments as $assignment) {
+                    $assignmentGroup['students'][] = [
+                        'matric_number' => $assignment->student_matric_number
+                    ];
+                }
+
+                $formattedAssignments[] = $assignmentGroup;
+            }
+
+            // Prepare the payload
+            $payload = [
+                'token' => $token,
+                'timestamp' => $timestamp,
+                'client_id' => 'mock-portal-client',
+                'state' => 'test_state',
+                'redirect_url' => 'http://127.0.0.1:8001/',
+                'assignments' => $formattedAssignments
+            ];
+
+            // Get the SAgilePMT_UTM URL from config
+            $sagilePmtUrl = Config::get('services.sagilepmt.url', 'http://localhost:8000');
+            $syncUrl = "{$sagilePmtUrl}/api/lecturer-student-assignment";
+
+            // Send the request to SAgilePMT
+            $response = Http::post($syncUrl, $payload);
+
+            if (!$response->successful()) {
+                throw new \Exception('Failed to sync with SAgilePMT: ' . $response->body());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully synced with SAgilePMT'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to sync with SAgilePMT: ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 

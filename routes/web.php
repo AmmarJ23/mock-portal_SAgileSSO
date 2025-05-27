@@ -27,6 +27,7 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::get('/login/sso', [SSOController::class, 'showLoginForm'])->name('sso.login.form');
 Route::get('/login/sso/callback', [SSOController::class, 'handleCallback'])->name('sso.callback');
 Route::get('/dashboard', [SSOController::class, 'dashboard'])->name('dashboard');
+Route::post('/sso/sync', [App\Http\Controllers\Auth\SSOController::class, 'syncWithSAgile'])->name('sso.sync');
 
 Auth::routes();
 
