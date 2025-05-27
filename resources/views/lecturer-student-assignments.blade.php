@@ -5,8 +5,12 @@
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">Lecturer-Student Assignments</h2>
+                    <button id="syncButton" class="btn btn-primary">
+                        <span id="syncSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Sync with SAgile
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="row g-3 mb-4">
@@ -90,4 +94,55 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const syncButton = document.getElementById('syncButton');
+    const syncSpinner = document.getElementById('syncSpinner');
+    
+    if (!syncButton || !syncSpinner) {
+        console.error('Sync button or spinner not found');
+        return;
+    }
+
+    syncButton.addEventListener('click', async function() {
+        console.log('Sync button clicked'); // Debug log
+        
+        // Disable button and show spinner
+        syncButton.disabled = true;
+        syncSpinner.classList.remove('d-none');
+        
+        try {
+            console.log('Sending sync request...'); // Debug log
+            const response = await fetch('{{ route("sso.sync") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+            
+            console.log('Response received:', response.status); // Debug log
+            
+            const data = await response.json();
+            console.log('Response data:', data); // Debug log
+            
+            if (data.success) {
+                alert('Successfully synced with SAgilePMT');
+            } else {
+                throw new Error(data.message || 'Failed to sync with SAgilePMT');
+            }
+        } catch (error) {
+            console.error('Sync error:', error); // Debug log
+            alert(error.message || 'An error occurred while syncing with SAgilePMT');
+        } finally {
+            // Re-enable button and hide spinner
+            syncButton.disabled = false;
+            syncSpinner.classList.add('d-none');
+        }
+    });
+});
+</script>
+@endpush
 @endsection 
