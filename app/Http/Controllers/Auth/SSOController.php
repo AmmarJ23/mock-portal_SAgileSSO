@@ -175,10 +175,20 @@ class SSOController extends Controller
                     'students' => []
                 ];
 
-                // Add students
+                // Add students with their details
                 foreach ($lecturerAssignments as $assignment) {
+                    // Get student data
+                    $student = User::where('matric_number', $assignment->student_matric_number)->first();
+                    
+                    if (!$student) {
+                        continue; // Skip if student not found
+                    }
+
                     $assignmentGroup['students'][] = [
-                        'matric_number' => $assignment->student_matric_number
+                        'matric_number' => $student->matric_number,
+                        'name' => $student->name,
+                        'username' => $student->username,
+                        'email' => $student->email,
                     ];
                 }
 
