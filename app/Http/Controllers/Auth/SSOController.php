@@ -145,25 +145,54 @@ class SSOController extends Controller
     public function syncWithSAgile(Request $request)
     {
         try {
+            \Log::info('syncWithSAgile: Starting synchronization process');
+
             // Generate timestamp and token similar to showLoginForm
             $timestamp = time();
             $secretKey = Config::get('services.sagilepmt.key', 'default-secret-key');
             $token = hash('sha256', $timestamp . $secretKey . 'mock-portal-client');
 
+            \Log::info('syncWithSAgile: Generated authentication tokens', [
+                'timestamp' => $timestamp,
+                'token' => $token,
+                'secret_key_exists' => !empty($secretKey)
+            ]);
+
             // Get all lecturer-student assignments grouped by lecturer
             $assignments = LecturerStudentAssignment::all()
                 ->groupBy('lecturer_staff_id');
+
+            \Log::info('syncWithSAgile: Retrieved assignments from database', [
+                'total_assignments' => LecturerStudentAssignment::count(),
+                'unique_lecturers' => $assignments->count()
+            ]);
 
             // Format assignments data
             $formattedAssignments = [];
 
             foreach ($assignments as $lecturerStaffId => $lecturerAssignments) {
+                \Log::info('syncWithSAgile: Processing lecturer assignments', [
+                    'lecturer_staff_id' => $lecturerStaffId,
+                    'assignments_count' => $lecturerAssignments->count()
+                ]);
+
                 // Get lecturer data
                 $lecturer = User::where('staff_id', $lecturerStaffId)->first();
                 
                 if (!$lecturer) {
+                    \Log::warning('syncWithSAgile: Lecturer not found, skipping', [
+                        'lecturer_staff_id' => $lecturerStaffId
+                    ]);
                     continue; // Skip if lecturer not found
                 }
+
+                \Log::info('syncWithSAgile: Found lecturer', [
+                    'lecturer_id' => $lecturer->id,
+                    'staff_id' => $lecturer->staff_id,
+                    'name' => $lecturer->name,
+                    'username' => $lecturer->username,
+                    'email' => $lecturer->email
+                ]);
 
                 $assignmentGroup = [
                     'lecturer' => [
@@ -176,13 +205,29 @@ class SSOController extends Controller
                 ];
 
                 // Add students with their details
-                foreach ($lecturerAssignments as $assignment) {
+                foreach ($lecturerAssignments as $assignmentIndex => $assignment) {
+                    \Log::info("syncWithSAgile: Processing student assignment {$assignmentIndex}", [
+                        'student_matric_number' => $assignment->student_matric_number,
+                        'lecturer_staff_id' => $assignment->lecturer_staff_id
+                    ]);
+
                     // Get student data
                     $student = User::where('matric_number', $assignment->student_matric_number)->first();
                     
                     if (!$student) {
+                        \Log::warning('syncWithSAgile: Student not found, skipping', [
+                            'student_matric_number' => $assignment->student_matric_number
+                        ]);
                         continue; // Skip if student not found
                     }
+
+                    \Log::info('syncWithSAgile: Found student', [
+                        'student_id' => $student->id,
+                        'matric_number' => $student->matric_number,
+                        'name' => $student->name,
+                        'username' => $student->username,
+                        'email' => $student->email
+                    ]);
 
                     $assignmentGroup['students'][] = [
                         'matric_number' => $student->matric_number,
@@ -192,8 +237,18 @@ class SSOController extends Controller
                     ];
                 }
 
+                \Log::info('syncWithSAgile: Completed lecturer assignment group', [
+                    'lecturer_staff_id' => $lecturerStaffId,
+                    'students_processed' => count($assignmentGroup['students'])
+                ]);
+
                 $formattedAssignments[] = $assignmentGroup;
             }
+
+            \Log::info('syncWithSAgile: Assignment formatting completed', [
+                'total_assignment_groups' => count($formattedAssignments),
+                'total_students' => array_sum(array_map(function($group) { return count($group['students']); }, $formattedAssignments))
+            ]);
 
             // Prepare the payload
             $payload = [
@@ -205,16 +260,38 @@ class SSOController extends Controller
                 'assignments' => $formattedAssignments
             ];
 
+            \Log::info('syncWithSAgile: Prepared payload for API call', [
+                'payload_size' => strlen(json_encode($payload)),
+                'assignments_count' => count($payload['assignments'])
+            ]);
+
             // Get the SAgilePMT_UTM URL from config
             $sagilePmtUrl = Config::get('services.sagilepmt.url', 'http://localhost:8000');
             $syncUrl = "{$sagilePmtUrl}/api/lecturer-student-assignment";
 
+            \Log::info('syncWithSAgile: Preparing to send HTTP request', [
+                'sagile_pmt_url' => $sagilePmtUrl,
+                'sync_url' => $syncUrl
+            ]);
+
             // Send the request to SAgilePMT
             $response = Http::post($syncUrl, $payload);
 
+            \Log::info('syncWithSAgile: Received HTTP response', [
+                'status_code' => $response->status(),
+                'successful' => $response->successful(),
+                'response_body' => $response->body()
+            ]);
+
             if (!$response->successful()) {
+                \Log::error('syncWithSAgile: HTTP request failed', [
+                    'status_code' => $response->status(),
+                    'response_body' => $response->body()
+                ]);
                 throw new \Exception('Failed to sync with SAgilePMT: ' . $response->body());
             }
+
+            \Log::info('syncWithSAgile: Synchronization completed successfully');
 
             return response()->json([
                 'success' => true,
@@ -222,6 +299,12 @@ class SSOController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error in syncWithSAgile: ' . $e->getMessage(), [
+                'exception' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to sync with SAgilePMT: ' . $e->getMessage()
